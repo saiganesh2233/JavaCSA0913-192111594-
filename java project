@@ -1,0 +1,159 @@
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.util.ArrayList;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.net.URI;
+
+class Customer {
+    private String name, email, experience, productLink;
+
+    public Customer(String name, String email, String experience, String productLink) {
+        this.name = name;
+        this.email = email;
+        this.experience = experience;
+        this.productLink = productLink;
+    }
+
+    public String getName() { return name; }
+    public String getEmail() { return email; }
+    public String getExperience() { return experience; }
+    public String getProductLink() { return productLink; }
+
+    public void updateProductLink(String newProductLink) {
+        this.productLink = newProductLink;
+    }
+}
+
+class CustomerExperienceManagementSystem extends JFrame {
+    private ArrayList<Customer> customers = new ArrayList<>();
+    private JTextArea customerListTextArea;
+    private JTextField nameField, emailField, experienceField, productLinkField;
+    private JPanel panel;
+
+    public CustomerExperienceManagementSystem() {
+        setTitle("Customer Experience Management System");
+        setSize(500, 400);
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setLocationRelativeTo(null);
+
+        panel = new JPanel(new GridLayout(7, 2));
+
+        JLabel[] labels = {new JLabel("Name:"), new JLabel("Email:"), new JLabel("Experience:"),
+                new JLabel("Product Link:")};
+        JTextField[] fields = {nameField = new JTextField(), emailField = new JTextField(),
+                experienceField = new JTextField(), productLinkField = new JTextField()};
+
+        for (int i = 0; i < labels.length; i++) {
+            panel.add(labels[i]);
+            panel.add(fields[i]);
+        }
+
+        JButton addButton = new JButton("Add Customer");
+        addButton.addActionListener(e -> addCustomer());
+        panel.add(addButton);
+
+        customerListTextArea = new JTextArea();
+        JScrollPane scrollPane = new JScrollPane(customerListTextArea);
+        panel.add(scrollPane);
+
+        add(panel);
+        setVisible(true);
+    }
+
+    private void addCustomer() {
+        String name = nameField.getText(), email = emailField.getText(), experience = experienceField.getText(),
+                productLink = productLinkField.getText();
+        if (!isValidEmail(email)) {
+            customerListTextArea.append("Invalid email address. Please enter a Gmail address.\n");
+            return;
+        }
+        if (!isValidLink(productLink)) {
+            customerListTextArea.append("Invalid product link. Please enter a valid URL.\n");
+            return;
+        }
+        if (isDuplicateEmail(email)) {
+            customerListTextArea.append("Duplicate email. This email already exists in the list.\n");
+            return;
+        }
+        Customer customer = new Customer(name, email, experience, productLink);
+        customers.add(customer);
+        updateCustomerList();
+        clearFields();
+    }
+
+    private boolean isValidEmail(String email) {
+        String emailRegex = "^[a-zA-Z0-9_+&-]+(?:\\.[a-zA-Z0-9_+&-]+)*@gmail\\.com$";
+        Pattern pattern = Pattern.compile(emailRegex);
+        Matcher matcher = pattern.matcher(email);
+        return matcher.matches();
+    }
+
+    private boolean isValidLink(String link) {
+        String linkRegex = "^https?://.*$";
+        Pattern pattern = Pattern.compile(linkRegex);
+        Matcher matcher = pattern.matcher(link);
+        return matcher.matches();
+    }
+
+    private boolean isDuplicateEmail(String email) {
+        for (Customer customer : customers) {
+            if (customer.getEmail().equals(email)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private void updateCustomerList() {
+        customerListTextArea.setText("");
+        for (Customer customer : customers) {
+            customerListTextArea.append("Name: " + customer.getName() + ", Email: " + customer.getEmail() +
+                    ", Experience: " + customer.getExperience() + "\nProduct Link: " + customer.getProductLink());
+            addButtonForUpdateLink(customer);
+            customerListTextArea.append("\n\n");
+        }
+    }
+
+    private void addButtonForUpdateLink(Customer customer) {
+        JButton updateButton = new JButton("Update Link");
+        updateButton.addActionListener(e -> updateProductLink(customer));
+        panel.add(updateButton);
+    }
+
+    private void updateProductLink(Customer customer) {
+        String newProductLink = JOptionPane.showInputDialog("Enter the new product link:");
+        if (newProductLink != null) {
+            customer.updateProductLink(newProductLink);
+            updateCustomerList();
+            try {
+                if (Desktop.isDesktopSupported()) {
+                    Desktop desktop = Desktop.getDesktop();
+                    if (desktop.isSupported(Desktop.Action.BROWSE)) {
+                        desktop.browse(new URI(newProductLink));
+                    } else {
+                        throw new UnsupportedOperationException("Desktop browse action not supported");
+                    }
+                } else {
+                    throw new UnsupportedOperationException("Desktop not supported");
+                }
+            } catch (Exception ex) {
+                ex.printStackTrace();
+                JOptionPane.showMessageDialog(this, "Error opening link: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+            }
+        }
+    }
+
+    private void clearFields() {
+        nameField.setText("");
+        emailField.setText("");
+        experienceField.setText("");
+        productLinkField.setText("");
+    }
+
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(CustomerExperienceManagementSystem::new);
+    }
+}
